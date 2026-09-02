@@ -1,0 +1,43 @@
+name: flutter_mybatis
+description: >-
+  MyBatis-style XML-based SQL mapping library for Flutter/Dart.
+  Separate SQL from code using XML files with dynamic SQL support.
+version: 1.1.0
+
+homepage: https://github.com/ryan-min/flutter_mybatis
+repository: https://github.com/ryan-min/flutter_mybatis
+issue_tracker: https://github.com/ryan-min/flutter_mybatis/issues
+
+topics:
+  - database
+  - sql
+  - orm
+  - mybatis
+  - sqlite
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  windows:
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # sqflite 2.4.x: compileSdk 35 호환 + AGP 8.5+ 지원 + federated 구조
+  sqflite: ^2.4.0
+  sqflite_common: ^2.5.0
+  xml: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  sqflite_common_ffi: ^2.4.0
+
+flutter:

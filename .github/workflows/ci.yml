@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# Separate jobs so that one slow or stuck package does not hide the result of
+# the others, and so each gets its own timeout.
+jobs:
+  library:
+    name: library
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  generator:
+    name: generator
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: generator
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: dart pub get
+      - run: dart analyze
+      - run: dart test
+
+  petstore:
+    name: example / petstore
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: example/petstore
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0
+      - run: dart pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: dart analyze
+      - run: dart test
+      - name: run the demo
+        run: dart run bin/petstore.dart
+
+  flutter_app:
+    name: example / flutter_app
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: example/flutter_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0
+      - run: flutter pub get
+      # The generated mapper is committed, and petstore already exercises
+      # build_runner. Running it again here is slow enough to stall the job.
+      - run: flutter analyze
+      - run: flutter test
