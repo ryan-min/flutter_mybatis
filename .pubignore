@@ -1,0 +1,29 @@
+# 주의: .pubignore 가 있으면 pub 은 .gitignore 를 무시한다.
+# 따라서 빌드 산출물 제외 규칙을 여기에 모두 적어야 한다.
+
+# 빌드 산출물 / 도구 캐시
+.dart_tool/
+build/
+**/.dart_tool/
+**/build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+coverage/
+doc/api/
+
+# 에디터
+.idea/
+.vscode/
+*.iml
+
+# 모노레포 전용 회귀 테스트 (실사용 앱 SQL을 참조하므로 배포본에서 제외)
+test/app_compat_test.dart
+
+# generator/ 는 여기서 제외하지 않는다.
+#
+# pub 은 상위 디렉터리의 .pubignore 도 적용하므로, 여기서 generator/ 를
+# 제외하면 중첩 패키지인 flutter_mybatis_generator 자신을 게시할 때
+# pubspec.yaml 까지 가려져 게시가 불가능해진다.
+# 소스 12KB가 라이브러리 아카이브에 함께 실리지만 동작에는 영향이 없다.
+# (build_runner 는 의존 패키지의 루트 build.yaml 만 읽는다)
