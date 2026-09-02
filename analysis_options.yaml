@@ -1,0 +1,10 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - avoid_print
+    - prefer_single_quotes
+    - prefer_const_constructors
+    - prefer_final_locals
+    # 공개 API는 dartdoc 주석 필수 (pub.dev 점수 + 이식 프로젝트 신뢰도)
+    - public_member_api_docs
