@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  JPetStore 매퍼 — MyBatis 공식 샘플(jpetstore-6)의 Flutter 이식판
+
+  자바에서 쓰던 XML을 그대로 옮겨온 형태입니다.
+  테이블/컬럼명은 원본 JPetStore 스키마를 따릅니다.
+-->
+<mapper namespace="PetStoreMapper">
+
+  <!-- ===================== 재사용 SQL 조각 ===================== -->
+
+  <sql id="productColumns">
+    P.PRODUCTID, P.NAME, P.DESCN, P.CATEGORY
+  </sql>
+
+  <sql id="itemColumns">
+    I.ITEMID, I.PRODUCTID, I.LISTPRICE, I.UNITCOST, I.ATTR1, I.STATUS
+  </sql>
+
+  <!-- ===================== 카테고리 ===================== -->
+
+  <select id="selectCategoryList">
+    SELECT CATID, NAME, DESCN FROM CATEGORY ORDER BY NAME
+  </select>
+
+  <select id="selectCategory">
+    SELECT CATID, NAME, DESCN FROM CATEGORY WHERE CATID = #{CATID}
+  </select>
+
+  <!-- ===================== 상품 ===================== -->
+
+  <!--
+    JPetStore의 상품 검색.
+    keyword / category / 재고여부가 각각 선택 조건이다.
+  -->
+  <select id="selectProductList">
+    SELECT <include refid="productColumns"/>
+    FROM PRODUCT P
+    <where>
+      <if test="CATID != null and CATID != ''">
+        AND P.CATEGORY = #{CATID}
+      </if>
+      <if test="keyword != null and keyword != ''">
+        AND (
+          UPPER(P.NAME) LIKE '%' || UPPER(#{keyword}) || '%'
+          OR UPPER(P.DESCN) LIKE '%' || UPPER(#{keyword}) || '%'
+        )
+      </if>
+      <if test="productIds != null and productIds.size() > 0">
+        AND P.PRODUCTID IN
+        <foreach collection="productIds" item="pid" open="(" close=")" separator=",">
+          #{pid}
+        </foreach>
+      </if>
+    </where>
+    ORDER BY
+    <choose>
+      <when test="sortBy == 'name'">P.NAME</when>
+      <when test="sortBy == 'category'">P.CATEGORY, P.NAME</when>
+      <otherwise>P.PRODUCTID</otherwise>
+    </choose>
+    ${sortDir}
+  </select>
+
+  <select id="selectProduct">
+    SELECT <include refid="productColumns"/>
+    FROM PRODUCT P WHERE P.PRODUCTID = #{PRODUCTID}
+  </select>
+
+  <select id="selectProductCount">
+    SELECT COUNT(*) AS CNT FROM PRODUCT P
+    <where>
+      <if test="CATID != null and CATID != ''">
+        AND P.CATEGORY = #{CATID}
+      </if>
+    </where>
+  </select>
+
+  <!-- ===================== 재고 품목 ===================== -->
+
+  <select id="selectItemListByProduct">
+    SELECT <include refid="itemColumns"/>, V.QTY
+    FROM ITEM I
+    LEFT JOIN INVENTORY V ON V.ITEMID = I.ITEMID
+    WHERE I.PRODUCTID = #{PRODUCTID}
+    <if test="inStockOnly != null and inStockOnly">
+      AND V.QTY > 0
+    </if>
+    ORDER BY I.ITEMID
+  </select>
+
+  <select id="selectItem">
+    SELECT <include refid="itemColumns"/>, V.QTY
+    FROM ITEM I
+    LEFT JOIN INVENTORY V ON V.ITEMID = I.ITEMID
+    WHERE I.ITEMID = #{ITEMID}
+  </select>
+
+  <!-- 재고 차감 — 수량이 모자라면 0건 갱신되어 주문이 실패한다 -->
+  <update id="decreaseInventory">
+    UPDATE INVENTORY
+    SET QTY = QTY - #{QTY}
+    WHERE ITEMID = #{ITEMID} AND QTY &gt;= #{QTY}
+  </update>
+
+  <!-- ===================== 계정 ===================== -->
+
+  <insert id="insertAccount" useGeneratedKeys="true" keyProperty="ID">
+    INSERT INTO ACCOUNT (USERID, EMAIL, FIRSTNAME, LASTNAME, STATUS)
+    VALUES (#{USERID}, #{EMAIL}, #{FIRSTNAME}, #{LASTNAME}, #{STATUS})
+  </insert>
+
+  <select id="selectAccount">
+    SELECT ID, USERID, EMAIL, FIRSTNAME, LASTNAME, STATUS
+    FROM ACCOUNT WHERE USERID = #{USERID}
+  </select>
+
+  <update id="updateAccount">
+    UPDATE ACCOUNT
+    <set>
+      <if test="EMAIL != null">EMAIL = #{EMAIL},</if>
+      <if test="FIRSTNAME != null">FIRSTNAME = #{FIRSTNAME},</if>
+      <if test="LASTNAME != null">LASTNAME = #{LASTNAME},</if>
+      <if test="STATUS != null">STATUS = #{STATUS},</if>
+    </set>
+    WHERE USERID = #{USERID}
+  </update>
+
+  <!-- ===================== 주문 ===================== -->
+
+  <!--
+    JPetStore는 시퀀스로 주문번호를 채번한다.
+    SQLite에는 시퀀스가 없으므로 selectKey로 같은 효과를 낸다.
+  -->
+  <insert id="insertOrder">
+    <selectKey keyProperty="ORDERID" resultType="int" order="BEFORE">
+      SELECT IFNULL(MAX(ORDERID), 1000) + 1 AS ORDERID FROM ORDERS
+    </selectKey>
+    INSERT INTO ORDERS (ORDERID, USERID, ORDERDATE, TOTALPRICE, STATUS)
+    VALUES (#{ORDERID}, #{USERID}, #{ORDERDATE}, #{TOTALPRICE}, #{STATUS})
+  </insert>
+
+  <insert id="insertOrderLine">
+    INSERT INTO LINEITEM (ORDERID, LINENUM, ITEMID, QUANTITY, UNITPRICE)
+    VALUES (#{ORDERID}, #{LINENUM}, #{ITEMID}, #{QUANTITY}, #{UNITPRICE})
+  </insert>
+
+  <select id="selectOrderList">
+    SELECT ORDERID, USERID, ORDERDATE, TOTALPRICE, STATUS
+    FROM ORDERS
+    <where>
+      <if test="USERID != null and USERID != ''">
+        AND USERID = #{USERID}
+      </if>
+      <if test="STATUS != null and STATUS != ''">
+        AND STATUS = #{STATUS}
+      </if>
+    </where>
+    ORDER BY ORDERID DESC
+  </select>
+
+  <select id="selectOrder">
+    SELECT ORDERID, USERID, ORDERDATE, TOTALPRICE, STATUS
+    FROM ORDERS WHERE ORDERID = #{ORDERID}
+  </select>
+
+  <select id="selectOrderLineList">
+    SELECT L.ORDERID, L.LINENUM, L.ITEMID, L.QUANTITY, L.UNITPRICE,
+           I.ATTR1, P.NAME AS PRODUCTNAME
+    FROM LINEITEM L
+    JOIN ITEM I    ON I.ITEMID = L.ITEMID
+    JOIN PRODUCT P ON P.PRODUCTID = I.PRODUCTID
+    WHERE L.ORDERID = #{ORDERID}
+    ORDER BY L.LINENUM
+  </select>
+
+  <update id="updateOrderStatus">
+    UPDATE ORDERS SET STATUS = #{STATUS} WHERE ORDERID = #{ORDERID}
+  </update>
+
+  <delete id="deleteOrder">
+    DELETE FROM ORDERS WHERE ORDERID = #{ORDERID}
+  </delete>
+
+  <delete id="deleteOrderLines">
+    DELETE FROM LINEITEM WHERE ORDERID = #{ORDERID}
+  </delete>
+
+</mapper>
