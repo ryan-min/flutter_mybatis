@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  flutter_mybatis 예제 매퍼
+
+  Java MyBatis를 쓰던 방식 그대로입니다.
+  이 파일 하나로 라이브러리의 주요 기능을 모두 보여줍니다.
+-->
+<mapper namespace="PersonMapper">
+
+  <!-- ===== 재사용 SQL 조각 ===== -->
+
+  <sql id="personColumns">
+    ID, NM, AGE, EMAIL, ACTIVE_FL, JOIN_DT
+  </sql>
+
+  <!-- ${} 로 조각에 값을 넘길 수 있다 (property) -->
+  <sql id="activeOnly">
+    ACTIVE_FL = ${flag}
+  </sql>
+
+  <!-- ===== 조회 ===== -->
+
+  <select id="selectList">
+    SELECT <include refid="personColumns"/>
+    FROM PERSON
+    <where>
+      <if test="NM != null and NM != ''">
+        AND NM LIKE '%' || #{NM} || '%'
+      </if>
+
+      <!-- 0.11부터: 괄호, 숫자 비교, 메서드 호출을 제대로 해석한다 -->
+      <if test="minAge != null and minAge > 0">
+        AND AGE &gt;= #{minAge}
+      </if>
+
+      <if test="ids != null and ids.size() > 0">
+        AND ID IN
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+          #{id}
+        </foreach>
+      </if>
+
+      <if test="activeOnly != null and activeOnly">
+        AND <include refid="activeOnly"><property name="flag" value="1"/></include>
+      </if>
+    </where>
+    ORDER BY ID DESC
+  </select>
+
+  <select id="selectById">
+    SELECT <include refid="personColumns"/> FROM PERSON WHERE ID = #{ID}
+  </select>
+
+  <select id="selectCount">
+    SELECT COUNT(*) AS CNT FROM PERSON
+    <where>
+      <if test="activeOnly != null and activeOnly">
+        AND ACTIVE_FL = 1
+      </if>
+    </where>
+  </select>
+
+  <!-- choose/when/otherwise + ${} 동적 정렬 -->
+  <select id="selectSorted">
+    SELECT <include refid="personColumns"/> FROM PERSON
+    ORDER BY
+    <choose>
+      <when test="sortBy == 'age'">AGE</when>
+      <when test="sortBy == 'name'">NM</when>
+      <otherwise>ID</otherwise>
+    </choose>
+    ${sortDir}
+  </select>
+
+  <!-- ===== 등록 ===== -->
+
+  <!-- useGeneratedKeys: INSERT 후 생성된 ID가 파라미터 맵에 담긴다 -->
+  <insert id="insert" useGeneratedKeys="true" keyProperty="ID">
+    INSERT INTO PERSON (NM, AGE, EMAIL, ACTIVE_FL, JOIN_DT)
+    VALUES (#{NM}, #{AGE}, #{EMAIL}, #{ACTIVE_FL}, #{JOIN_DT})
+  </insert>
+
+  <!-- selectKey: MyBatis에서 시퀀스를 흉내낼 때 쓰던 방식 -->
+  <insert id="insertWithSelectKey">
+    <selectKey keyProperty="ID" resultType="int" order="BEFORE">
+      SELECT IFNULL(MAX(ID), 0) + 100 AS ID FROM PERSON
+    </selectKey>
+    INSERT INTO PERSON (ID, NM, AGE, ACTIVE_FL)
+    VALUES (#{ID}, #{NM}, #{AGE}, 1)
+  </insert>
+
+  <!-- ===== 수정 / 삭제 ===== -->
+
+  <update id="update">
+    UPDATE PERSON
+    <set>
+      <if test="NM != null">NM = #{NM},</if>
+      <if test="AGE != null">AGE = #{AGE},</if>
+      <if test="EMAIL != null">EMAIL = #{EMAIL},</if>
+      <if test="ACTIVE_FL != null">ACTIVE_FL = #{ACTIVE_FL},</if>
+    </set>
+    WHERE ID = #{ID}
+  </update>
+
+  <delete id="delete">
+    DELETE FROM PERSON WHERE ID = #{ID}
+  </delete>
+
+  <delete id="deleteByIds">
+    DELETE FROM PERSON WHERE ID IN
+    <foreach collection="ids" item="id" open="(" close=")" separator=",">
+      #{id}
+    </foreach>
+  </delete>
+
+</mapper>
