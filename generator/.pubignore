@@ -1,0 +1,8 @@
+# 주의: .pubignore 가 있으면 pub 은 .gitignore 를 무시한다.
+.dart_tool/
+build/
+pubspec.lock
+coverage/
+doc/api/
+.idea/
+.vscode/
