@@ -1,0 +1,28 @@
+name: flutter_mybatis_example
+description: flutter_mybatis 사용 예제 — XML 매퍼, 동적 SQL, 생성키, TypeHandler
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_mybatis:
+    path: ../../
+  sqflite: ^2.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.0
+  sqflite_common_ffi: ^2.4.0
+  flutter_mybatis_generator:
+    path: ../../generator
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/person_mapper.xml
